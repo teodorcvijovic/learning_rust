@@ -22,6 +22,10 @@ impl List {
             List::Cons(_, tail) => 1 + tail.len(),
         }
     }
+
+    pub fn iter(&self) -> ListIterator {
+        ListIterator { curr: self }
+    }
 }
 
 impl Stack {
@@ -76,10 +80,14 @@ impl fmt::Display for Stack {
 impl From<List> for Vec<i32> {
     fn from(list: List) -> Self {
         let mut vec = Vec::new();
-        let mut curr = &list;
-        while let List::Cons(val, next) = curr {
-            vec.push(*val);
-            curr = &**next;
+        // let mut curr = &list;
+        // while let List::Cons(val, next) = curr {
+        //     vec.push(*val);
+        //     curr = &**next;
+        // }
+
+        for val in &list {
+            vec.push(val);
         }
         return vec;
     }
@@ -149,6 +157,38 @@ impl FromStr for Stack {
     }
 }
 
+// the references in the curr field have a lifetime tied
+// to the List they are referencing
+pub struct ListIterator<'a> {
+    pub curr: &'a List,
+}
+
+impl<'a> Iterator for ListIterator<'a> {
+    type Item = i32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match &self.curr {
+            List::Nil => None,
+            List::Cons(val, next) => {
+                self.curr = &**next;
+                Some(*val)
+            },
+        }
+    }
+}
+
+// implementing the IntoIterator trait for a reference to 
+// a List with the lifetime parameter 'a
+impl<'a> IntoIterator for &'a List {
+    type Item = i32;
+    type IntoIter = ListIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let iter = ListIterator {curr: &self};
+        return iter;
+    }
+}
+
 fn main() {
     let l1 = List::Nil;
     let l2 = List::Cons(37, Box::new(l1));
@@ -172,4 +212,11 @@ fn main() {
 
     let stack: Stack = "[2, 5, 7]".parse().unwrap();
     println!("{stack}");
+
+    let mut l = List::Cons(1, Box::new(List::Cons(2, Box::new(List::Cons(3, Box::new(List::Nil))))));
+    let i = l.iter();
+    for item in &l {
+        println!("{item}");
+    }
+
 }
